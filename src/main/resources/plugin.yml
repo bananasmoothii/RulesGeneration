@@ -4,3 +4,8 @@ main: fr.bananasmoothii.rulesgeneration.RulesGenerationPlugin
 api-version: 1.16
 authors: [ Bananasmoothii ]
 description: This plugin allows you to generate terrain using 16x16x16 chunks that piece together using rules
+
+commands:
+  cbg_test:
+    usage: /cbg_test
+    description: test
