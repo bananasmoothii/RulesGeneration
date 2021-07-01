@@ -15,18 +15,18 @@ public class CubicChunk implements Iterable<BlockData> {
     private final int id;
     private int invertedGenerationChance;
     public final List<Rule> rules = new ArrayList<>();
-    /** 0 = common (default), positive = very common, negative = rare */
-    public final double rarity;
+    /** 0 = common (default), positive = very common, negative = rare. Please keep values in the range [-100; 100] */
+    public final float rarity;
 
     private static final HashMap<Integer, CubicChunk> instances = new HashMap<>();
 
-    public static final CubicChunk AIR_CHUNK = new CubicChunk(0);
+    public static final CubicChunk AIR_CHUNK = new CubicChunk(0, 50);
 
     public CubicChunk(int id) {
         this(id, 0d);
     }
 
-    public CubicChunk(int id, double rarity) {
+    public CubicChunk(int id, float rarity) {
         if (instances.containsKey(id))
             throw new IllegalArgumentException("That id is already taken");
         instances.put(id, this);

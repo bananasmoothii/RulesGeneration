@@ -35,7 +35,7 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         if (list.isEmpty()) return new CubicChunkCoords[0];
         switch (logicalOperator) {
             case OR:
-                return list.get(ThreadLocalRandom.current().nextInt(list.size())).applyWouldChange();
+                //TODO
             case AND:
                 CubicChunkCoords[][] applyWouldChange1 = new CubicChunkCoords[list.size()][];
                 int totalSize = 0;
@@ -56,6 +56,8 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
                 throw new IllegalStateException("Unexpected value: " + logicalOperator);
         }
     }
+
+
 
     public void validate() {
         switch (logicalOperator) {
@@ -92,9 +94,9 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
     }
 
     @Override
-    public double shouldFollow() {
-        if (list.isEmpty()) return 0d;
-        double average = 0d;
+    public float shouldFollow() {
+        if (list.isEmpty()) return 0f;
+        float average = 0f;
         for (Suggestion suggestion : list) {
             average += suggestion.shouldFollow();
         }

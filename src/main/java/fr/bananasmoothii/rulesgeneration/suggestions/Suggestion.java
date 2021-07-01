@@ -48,7 +48,7 @@ public abstract class Suggestion {
         return changed != null;
     }
 
-    /** Similar to {@link CubicChunk#rarity} */
-    public abstract double shouldFollow();
+    /** Similar to {@link CubicChunk#rarity}. Please keep values in the range [-100; 100] */
+    public abstract float shouldFollow();
 
 }

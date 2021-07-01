@@ -25,7 +25,7 @@ public class SimpleSuggestion extends Suggestion {
     }
 
     @Override
-    public double shouldFollow() {
+    public float shouldFollow() {
         return what.rarity;
     }
 }
