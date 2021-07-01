@@ -1,5 +1,7 @@
 package fr.bananasmoothii.rulesgeneration;
 
+import fr.bananasmoothii.rulesgeneration.chunks.CubicChunk;
+import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -15,7 +17,7 @@ public final class RulesGenerationPlugin extends JavaPlugin {
     }
 
     private static void test1() {
-        CubicChunkEnvironment cce = new CubicChunkEnvironment(ThreadLocalRandom.current().nextInt());
+        CubicChunkEnvironment cce = new CubicChunkEnvironment(ThreadLocalRandom.current());
         cce.set(CubicChunk.AIR_CHUNK, 0, 0, 0);
         cce.set(CubicChunk.AIR_CHUNK, -1, -1, -1);
         cce.set(CubicChunk.AIR_CHUNK, -1, -1, 0);
@@ -26,7 +28,7 @@ public final class RulesGenerationPlugin extends JavaPlugin {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (command.getName().equals("cbg_test")) {
+        if (command.getName().equals("cce_test")) {
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 try {
                     test1();

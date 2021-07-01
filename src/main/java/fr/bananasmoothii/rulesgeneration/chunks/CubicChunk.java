@@ -1,29 +1,37 @@
-package fr.bananasmoothii.rulesgeneration;
+package fr.bananasmoothii.rulesgeneration.chunks;
 
+import fr.bananasmoothii.rulesgeneration.rules.Rule;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 
 public class CubicChunk implements Iterable<BlockData> {
 
     private final BlockData[][][] blockDatas;
     private final int id;
+    private int invertedGenerationChance;
+    public final List<Rule> rules = new ArrayList<>();
+    /** 0 = common (default), positive = very common, negative = rare */
+    public final double rarity;
 
     private static final HashMap<Integer, CubicChunk> instances = new HashMap<>();
 
     public static final CubicChunk AIR_CHUNK = new CubicChunk(0);
 
     public CubicChunk(int id) {
+        this(id, 0d);
+    }
+
+    public CubicChunk(int id, double rarity) {
         if (instances.containsKey(id))
             throw new IllegalArgumentException("That id is already taken");
         instances.put(id, this);
         this.id = id;
+        this.rarity = rarity;
         blockDatas = new BlockData[16][16][16];
         fill(Material.AIR);
     }
@@ -46,6 +54,10 @@ public class CubicChunk implements Iterable<BlockData> {
         CubicChunk candidate = instances.get(id);
         if (candidate != null) return candidate;
         return new CubicChunk(id);
+    }
+
+    public static Collection<CubicChunk> allAvailable() {
+        return Collections.unmodifiableCollection(instances.values());
     }
 
     public static void checkIndex(int x, int y, int z) {
@@ -95,5 +107,14 @@ public class CubicChunk implements Iterable<BlockData> {
                 return blockDatas[x][y][z++];
             }
         };
+    }
+
+    public int getInvertedGenerationChance() {
+        return invertedGenerationChance;
+    }
+
+    public @NotNull CubicChunk setInvertedGenerationChance(int invertedGenerationChance) {
+        this.invertedGenerationChance = invertedGenerationChance;
+        return this;
     }
 }

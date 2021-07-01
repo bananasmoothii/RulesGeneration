@@ -1,5 +1,6 @@
-package fr.bananasmoothii.rulesgeneration;
+package fr.bananasmoothii.rulesgeneration.chunks;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -7,31 +8,45 @@ import java.util.*;
 
 public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
 
-    private final long seed;
-    private static final HashMap<Long, CubicChunkEnvironment> instances = new HashMap<>();
+    private final Random random;
+    private static final HashMap<Random, CubicChunkEnvironment> instances = new HashMap<>();
     private static int enlargeAtOnce = 10;
 
     private CubicChunk[][][] cubicChunks;
     private int xOffset, yOffset, zOffset,
-                xMin, yMin, zMin, // exclusive
-                xMax, yMax, zMax, // inclusive
+                xMin, yMin, zMin, // inclusive
+                xMax, yMax, zMax, // inclusive too
                 xArraySize, yArraySize, zArraySize;
 
-    public CubicChunkEnvironment(long seed) {
-        this(seed, 50);
+    public CubicChunkEnvironment(Random random) {
+        this(random, 16);
     }
 
-    public CubicChunkEnvironment(long seed, int size) {
-        this(seed, size, 16);
+    public CubicChunkEnvironment(Random random, int ySize) {
+        this(random, ySize, 50);
     }
 
-    public CubicChunkEnvironment(long seed, int size, int ySize) {
-        instances.put(seed, this);
-        this.seed = seed;
+    public CubicChunkEnvironment(Random random, int ySize, int size) {
+        instances.put(random, this);
+        this.random = random;
         xArraySize = size; yArraySize = ySize; zArraySize = size;
         cubicChunks = new CubicChunk[xArraySize][ySize][zArraySize];
         int halfSize = size / 2;
         xOffset = halfSize; yOffset = ySize / 2; zOffset = halfSize;
+    }
+
+    public static CubicChunkEnvironment withSeed(Random random) {
+        return withSeed(random, 16);
+    }
+
+    public static CubicChunkEnvironment withSeed(Random random, int ySize) {
+        return withSeed(random, ySize, 50);
+    }
+
+    public static CubicChunkEnvironment withSeed(Random random, int ySize, int size) {
+        @Nullable CubicChunkEnvironment candidate = instances.get(random);
+        if (candidate != null) return candidate;
+        else return new CubicChunkEnvironment(random, ySize, size);
     }
 
     public @Nullable CubicChunk get(int x, int y, int z) {
@@ -42,9 +57,13 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         }
     }
 
-    public void set(CubicChunk chunk, int x, int y, int z) {
+    public void set(@Nullable CubicChunk chunk, int x, int y, int z) {
         ensureCapacityForElement(x, y, z);
         cubicChunks[x + xOffset][y + yOffset][z + zOffset] = chunk;
+    }
+
+    public void set(CubicChunkCoords chunkCoords) {
+        set(chunkCoords.cubicChunk, chunkCoords.x, chunkCoords.y, chunkCoords.z);
     }
 
     public void ensureCapacityForElement(int x, int y, int z) {
@@ -65,7 +84,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         }
     }
 
-    private void enlargeX(final int addingSpace) {
+    void enlargeX(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
             if (xMin + addingSpace < 0) {
@@ -87,7 +106,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         }
     }
 
-    private void enlargeY(final int addingSpace) {
+    void enlargeY(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
             if (yMin + addingSpace < 0) {
@@ -113,7 +132,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         }
     }
 
-    private void enlargeZ(final int addingSpace) {
+    void enlargeZ(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
             if (zMin + addingSpace < 0) {
@@ -159,17 +178,29 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
     }
 
     @NotNull
-    @Override // TODO
+    @Override
     public Iterator<@Nullable CubicChunk> iterator() {
         return new Iterator<@Nullable CubicChunk>() {
+            private int currentX = xMin, currentY = yMin, currentZ = zMin;
+
             @Override
+            @Contract(pure = true)
             public boolean hasNext() {
-                return false;
+                return currentZ < zMax && currentY < yMax && currentX < xMax;
             }
 
             @Override
-            public CubicChunk next() {
-                return null;
+            public @Nullable CubicChunk next() {
+                if (++currentZ >= zMax) {
+                    currentZ = zMin;
+                    currentY++;
+                }
+                if (currentY >= yMax) {
+                    currentY = yMin;
+                    currentX++;
+                }
+                if (currentX >= xMax) throw new NoSuchElementException();
+                return get(currentX, currentY, currentZ);
             }
         };
     }
@@ -190,4 +221,5 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
             System.out.print('\n');
         }
     }
+
 }

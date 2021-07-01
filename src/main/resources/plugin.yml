@@ -7,5 +7,5 @@ description: This plugin allows you to generate terrain using 16x16x16 chunks th
 
 commands:
   cbg_test:
-    usage: /cbg_test
+    usage: /cce_test
     description: test

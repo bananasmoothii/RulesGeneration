@@ -1,11 +1,9 @@
 package fr.bananasmoothii.rulesgeneration.rules;
 
-import fr.bananasmoothii.rulesgeneration.CubicChunk;
-import fr.bananasmoothii.rulesgeneration.CubicChunkCoords;
-import fr.bananasmoothii.rulesgeneration.CubicChunkEnvironment;
+import fr.bananasmoothii.rulesgeneration.chunks.CubicChunk;
+import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
+import fr.bananasmoothii.rulesgeneration.suggestions.SuggestionList;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Collection;
 
 public abstract class Rule {
     protected CubicChunk concerned;
@@ -14,9 +12,23 @@ public abstract class Rule {
         this.concerned = concerned;
     }
 
-    public abstract @Nullable Collection<CubicChunkCoords> testAndSuggest(CubicChunkEnvironment environment, int x, int y, int z);
+    public abstract @Nullable SuggestionList testAndSuggest(CubicChunkEnvironment environment, int x, int y, int z);
 
     public boolean test(CubicChunkEnvironment environment, int x, int y, int z) {
-        return testAndSuggest(environment, x, y, z) != null;
+        return !testAndSuggest(environment, x, y, z).isEmpty();
     }
+
+    /**
+     * This is an indicator telling if, applied at a position x, y, zApplied, the value of
+     * {@link #test(CubicChunkEnvironment, int, int, int) test} could change if x, y, zConcerned are changed.
+     *
+     * While this returning {@code true} doesn't necessarily mean modifing the concerned chunk will affect the return value of
+     * {@link #test(CubicChunkEnvironment, int, int, int) test} and {@link #testAndSuggest(CubicChunkEnvironment, int, int, int) testAndSuggest},
+     * this returning {@code false} must imply that you can mess with the concerned chunk without worrying.
+     * @return {@code false} if the value of {@link #test(CubicChunkEnvironment, int, int, int) test} will never move, no
+     *      matter what you do to x, y and zConcerned, if the rule is applied at x, y and zApplied.
+     */
+    public abstract boolean concerns(int xConcerned, int yConcerned, int zConcerned, int xApplied, int yApplied, int zApplied);
+
+
 }
