@@ -13,4 +13,14 @@ public class CubicChunkCoords {
         this.y = y;
         this.z = z;
     }
+
+    @Override
+    public String toString() {
+        return "CubicChunkCoords{" +
+                "cubicChunk=" + cubicChunk +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
+    }
 }

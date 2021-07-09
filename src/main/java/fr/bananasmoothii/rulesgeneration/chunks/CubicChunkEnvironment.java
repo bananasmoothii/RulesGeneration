@@ -6,9 +6,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
+public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunkCoords> {
 
-    private final Random random;
+    public final Random random;
     private static final HashMap<Random, CubicChunkEnvironment> instances = new HashMap<>();
     private static int enlargeAtOnce = 10;
 
@@ -17,6 +17,10 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
                 xMin, yMin, zMin, // inclusive
                 xMax, yMax, zMax, // inclusive too
                 xArraySize, yArraySize, zArraySize;
+
+    public CubicChunkEnvironment() {
+        this(new Random());
+    }
 
     public CubicChunkEnvironment(Random random) {
         this(random, 16);
@@ -32,7 +36,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         xArraySize = size; yArraySize = ySize; zArraySize = size;
         cubicChunks = new CubicChunk[xArraySize][ySize][zArraySize];
         int halfSize = size / 2;
-        xOffset = halfSize; yOffset = ySize / 2; zOffset = halfSize;
+        xOffset = halfSize; yOffset = 0; zOffset = halfSize;
     }
 
     public static CubicChunkEnvironment withSeed(Random random) {
@@ -74,7 +78,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
         }
         if (y < yMin) {
             enlargeY(y - yMin); // = -(yMin - y)
-        } else if (x > xMax) {
+        } else if (y > xMax) {
             enlargeY(y - yMax);
         }
         if (z < zMin) {
@@ -87,7 +91,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
     void enlargeX(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
-            if (xMin + addingSpace < 0) {
+            if (xMin + addingSpace + xOffset < 0) {
                 CubicChunk[][][] old = cubicChunks;
                 cubicChunks = new CubicChunk[xArraySize + totalAddingSpace][yArraySize][zArraySize];
                 System.arraycopy(old, 0, cubicChunks, totalAddingSpace, xArraySize);
@@ -96,7 +100,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
             }
             xMin += addingSpace; // so xMin -= abs(addingSpace)
         } else if (addingSpace > 0) {
-            if (xMax + addingSpace > xArraySize) {
+            if (xMax + addingSpace + xOffset >= xArraySize) {
                 CubicChunk[][][] old = cubicChunks;
                 cubicChunks = new CubicChunk[xArraySize + totalAddingSpace][yArraySize][zArraySize];
                 System.arraycopy(old, 0, cubicChunks, 0, xArraySize);
@@ -109,7 +113,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
     void enlargeY(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
-            if (yMin + addingSpace < 0) {
+            if (yMin + addingSpace + yOffset < 0) {
                 for (int x = 0; x < xArraySize; x++) {
                     CubicChunk[][] old = cubicChunks[x];
                     cubicChunks[x] = new CubicChunk[yArraySize + totalAddingSpace][zArraySize];
@@ -120,7 +124,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
             }
             yMin += addingSpace;
         } else if (addingSpace > 0) {
-            if (yMax + addingSpace > yArraySize) {
+            if (yMax + addingSpace + yOffset >= yArraySize) {
                 for (int x = 0; x < xArraySize; x++) {
                     CubicChunk[][] old = cubicChunks[x];
                     cubicChunks[x] = new CubicChunk[yArraySize + totalAddingSpace][zArraySize];
@@ -135,7 +139,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
     void enlargeZ(final int addingSpace) {
         final int totalAddingSpace = Math.abs(addingSpace) + enlargeAtOnce;
         if (addingSpace < 0) {
-            if (zMin + addingSpace < 0) {
+            if (zMin + addingSpace + zOffset < 0) {
                 for (int x = 0; x < xArraySize; x++) {
                     for (int y = 0; y < yArraySize; y++) {
                         CubicChunk[] old = cubicChunks[x][y];
@@ -148,7 +152,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
             }
             zMin -= addingSpace;
         } else if (addingSpace > 0) {
-            if (zMax + addingSpace > zArraySize) {
+            if (zMax + addingSpace + zOffset >= zArraySize) {
                 for (int x = 0; x < xArraySize; x++) {
                     for (int y = 0; y < yArraySize; y++) {
                         CubicChunk[] old = cubicChunks[x][y];
@@ -179,8 +183,8 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
 
     @NotNull
     @Override
-    public Iterator<@Nullable CubicChunk> iterator() {
-        return new Iterator<@Nullable CubicChunk>() {
+    public Iterator<@Nullable CubicChunkCoords> iterator() {
+        return new Iterator<@Nullable CubicChunkCoords>() {
             private int currentX = xMin, currentY = yMin, currentZ = zMin;
 
             @Override
@@ -190,7 +194,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
             }
 
             @Override
-            public @Nullable CubicChunk next() {
+            public @Nullable CubicChunkCoords next() {
                 if (++currentZ >= zMax) {
                     currentZ = zMin;
                     currentY++;
@@ -200,7 +204,9 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunk> {
                     currentX++;
                 }
                 if (currentX >= xMax) throw new NoSuchElementException();
-                return get(currentX, currentY, currentZ);
+                CubicChunk c = get(currentX, currentY, currentZ);
+                if (c == null) return null;
+                return new CubicChunkCoords(c, currentX, currentY, currentZ);
             }
         };
     }

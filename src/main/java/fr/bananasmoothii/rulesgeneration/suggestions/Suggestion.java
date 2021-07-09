@@ -5,6 +5,7 @@ import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkCoords;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -49,6 +50,6 @@ public abstract class Suggestion {
     }
 
     /** Similar to {@link CubicChunk#rarity}. Please keep values in the range [-100; 100] */
-    public abstract float shouldFollow();
+    public abstract @Range(from = -100, to = 100) float shouldFollow();
 
 }

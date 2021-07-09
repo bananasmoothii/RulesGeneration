@@ -1,11 +1,14 @@
 package fr.bananasmoothii.rulesgeneration.chunks;
 
+import fr.bananasmoothii.rulesgeneration.LogicalOperator;
 import fr.bananasmoothii.rulesgeneration.rules.Rule;
+import fr.bananasmoothii.rulesgeneration.rules.RuleList;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.util.*;
 
@@ -13,27 +16,53 @@ public class CubicChunk implements Iterable<BlockData> {
 
     private final BlockData[][][] blockDatas;
     private final int id;
-    private int invertedGenerationChance;
-    public final List<Rule> rules = new ArrayList<>();
+    public final RuleList<Rule> rules = new RuleList<>(LogicalOperator.AND);
     /** 0 = common (default), positive = very common, negative = rare. Please keep values in the range [-100; 100] */
-    public final float rarity;
+    public final @Range(from = -100, to = 100) float rarity;
 
-    private static final HashMap<Integer, CubicChunk> instances = new HashMap<>();
+    private static final TreeMap<Integer, CubicChunk> instances = new TreeMap<>();
 
-    public static final CubicChunk AIR_CHUNK = new CubicChunk(0, 50);
+    public static final CubicChunk AIR_CHUNK;
+
+    static {
+        //noinspection ConstantConditions
+        if (Bukkit.getServer() != null) {
+            AIR_CHUNK = new CubicChunk(0, 50, true);
+        } else {
+            // here it means the class was called too early or we are in test mode
+            AIR_CHUNK = new CubicChunk(0, 50, false);
+        }
+    }
+
+    public CubicChunk() {
+        this(nextId(), 0f, true);
+    }
+
+    public CubicChunk(float rarity) {
+        this(nextId(), rarity, true);
+    }
+
+    public static int nextId() {
+        return instances.lastKey() + 1;
+    }
 
     public CubicChunk(int id) {
-        this(id, 0d);
+        this(id, 0f, true);
     }
 
     public CubicChunk(int id, float rarity) {
+        this(id);
+    }
+
+    protected CubicChunk(int id, float rarity, boolean fillWithAir) {
         if (instances.containsKey(id))
             throw new IllegalArgumentException("That id is already taken");
-        instances.put(id, this);
         this.id = id;
         this.rarity = rarity;
         blockDatas = new BlockData[16][16][16];
-        fill(Material.AIR);
+        instances.put(id, this);
+        if (fillWithAir)
+            fill(Material.AIR);
     }
 
     public void fill(Material material) {
@@ -109,12 +138,11 @@ public class CubicChunk implements Iterable<BlockData> {
         };
     }
 
-    public int getInvertedGenerationChance() {
-        return invertedGenerationChance;
-    }
-
-    public @NotNull CubicChunk setInvertedGenerationChance(int invertedGenerationChance) {
-        this.invertedGenerationChance = invertedGenerationChance;
-        return this;
+    @Override
+    public String toString() {
+        return "CubicChunk{" +
+                "id=" + id +
+                ", rarity=" + rarity +
+                '}';
     }
 }

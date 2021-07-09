@@ -10,12 +10,19 @@ public class SimpleSuggestion extends Suggestion {
     public final int x, y, z;
     public final CubicChunk what;
 
+    float shouldFollow;
+
     public SimpleSuggestion(CubicChunkEnvironment environment, int x, int y, int z, CubicChunk what) {
+        this(environment, x, y, z, what, what.rarity);
+    }
+
+    public SimpleSuggestion(CubicChunkEnvironment environment, int x, int y, int z, CubicChunk what, float shouldFollow) {
         super(environment);
         this.x = x;
         this.y = y;
         this.z = z;
         this.what = what;
+        this.shouldFollow = shouldFollow;
     }
 
     @Override
@@ -26,6 +33,19 @@ public class SimpleSuggestion extends Suggestion {
 
     @Override
     public float shouldFollow() {
-        return what.rarity;
+        return shouldFollow;
+    }
+    
+    public void setShouldFollow(float shouldFollow) {
+        this.shouldFollow = shouldFollow;
+    }
+
+    @Override
+    public String toString() {
+        return "SimpleSuggestion{" +
+                "set " + what +
+                " at x=" + x + ",y=" + y + ",z=" + z +
+                ", shouldFollow=" + shouldFollow +
+                '}';
     }
 }

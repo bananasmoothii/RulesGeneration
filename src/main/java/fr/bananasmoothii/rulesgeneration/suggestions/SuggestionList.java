@@ -1,24 +1,21 @@
 package fr.bananasmoothii.rulesgeneration.suggestions;
 
+import fr.bananasmoothii.rulesgeneration.FloatRangeMap;
+import fr.bananasmoothii.rulesgeneration.LogicalOperator;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkCoords;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
 import fr.bananasmoothii.rulesgeneration.rules.Rule;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.IntStream;
 
 public class SuggestionList extends Suggestion implements List<Suggestion> {
 
-    final ArrayList<Suggestion> list;
+    final List<Suggestion> list;
     public final LogicalOperator logicalOperator;
-
-    public SuggestionList(CubicChunkEnvironment environment, int initialCapacity) {
-        super(environment);
-        list = new ArrayList<>(initialCapacity);
-        logicalOperator = LogicalOperator.OR;
-    }
 
     public SuggestionList(CubicChunkEnvironment environment) {
         this(environment, LogicalOperator.OR);
@@ -35,7 +32,8 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         if (list.isEmpty()) return new CubicChunkCoords[0];
         switch (logicalOperator) {
             case OR:
-                //TODO
+                if (chosenSuggestion == null) choose();
+                return chosenSuggestion.applyWouldChange();
             case AND:
                 CubicChunkCoords[][] applyWouldChange1 = new CubicChunkCoords[list.size()][];
                 int totalSize = 0;
@@ -57,39 +55,71 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         }
     }
 
+    @Nullable Suggestion chosenSuggestion;
 
+    /**
+     * This is useful only when {@link #logicalOperator} is {@link LogicalOperator#OR OR}. It picks one suggestion based
+     * on {@link Suggestion#shouldFollow()}. The result, {@link #chosenSuggestion}, will be {@code null} if
+     * {@link #logicalOperator} is not {@link LogicalOperator#OR OR}.
+     */
+    void choose() {
+        if (logicalOperator == LogicalOperator.OR) {
+            float lastRangeTo = 0f;
+            FloatRangeMap<Suggestion> map = new FloatRangeMap<>();
+            for (Suggestion suggestion : list) {
+                @Range(from = 0, to = 200) float nodeSize = suggestion.shouldFollow() + 100;
+                map.put(lastRangeTo, lastRangeTo + nodeSize, suggestion);
+                lastRangeTo += nodeSize;
+            }
+            chosenSuggestion = map.get(environment.random.nextInt((int) (lastRangeTo * 1000)) / 1000f);
+        }
+    }
 
     public void validate() {
+        ArrayList<Runnable> todo = new ArrayList<>();
         switch (logicalOperator) {
             case OR:
-                ArrayList<Runnable> todo = new ArrayList<>();
-                for (final Suggestion suggestion : list) {
-                    for (CubicChunkCoords change : suggestion.apply()) {
-                        if (change.cubicChunk == null) continue;
-                        boolean deleteSuggestionIfNeedsOtherSuggestions = list.size() > 1 && ThreadLocalRandom.current().nextBoolean();
-                        for (Rule rule : change.cubicChunk.rules) {
-                            if (deleteSuggestionIfNeedsOtherSuggestions) {
-                                if (!rule.test(environment, change.x, change.y, change.z)) {
-                                    todo.add(() -> list.remove(suggestion));
-                                }
-                            } else {
-                                SuggestionList newSuggestions = rule.testAndSuggest(environment, change.x, change.y, change.z);
-                                if (newSuggestions != null) {
-                                    newSuggestions.validate();
-                                    todo.add(() -> list.addAll(newSuggestions));
-                                }
+                if (chosenSuggestion == null) choose();
+                for (CubicChunkCoords change : chosenSuggestion.apply()) {
+                    if (change.cubicChunk == null) continue;
+                    for (Rule rule : change.cubicChunk.rules) {
+                        // if the suggestion isn't valid according to all rules, should it just remove that suggestion...
+                        if (list.size() > 1 && (Thread.currentThread().getStackTrace().length > 10 || environment.random.nextBoolean())) {
+                            if (!rule.test(environment, change.x, change.y, change.z)) {
+                                todo.add(() -> list.remove(chosenSuggestion));
+                            }
+                        // ...or try to add other suggestions so the rule is valid
+                        } else {
+                            SuggestionList newSuggestions = rule.testAndSuggest(environment, change.x, change.y, change.z);
+                            if (newSuggestions != null) {
+                                newSuggestions.validate();
+                                todo.add(() -> list.addAll(newSuggestions));
                             }
                         }
-                        suggestion.undo();
                     }
                 }
-                for (Runnable todo1 : todo) {
-                    todo1.run();
-                }
+                chosenSuggestion.undo();
                 break;
             case AND:
-                // TODO
+                ArrayList<CubicChunkCoords> changes = new ArrayList<>();
+                for (Suggestion suggestion : list) {
+                    changes.addAll(Arrays.asList(suggestion.apply()));
+                    todo.add(suggestion::undo);
+                }
+                for (CubicChunkCoords change : changes) {
+                    if (change.cubicChunk == null) continue;
+                    for (Rule rule : change.cubicChunk.rules) {
+                        SuggestionList newSuggestions = rule.testAndSuggest(environment, change.x, change.y, change.z);
+                        if (newSuggestions != null) {
+                            newSuggestions.validate();
+                            list.addAll(newSuggestions);
+                        }
+                    }
+                }
                 break;
+        }
+        for (int i = todo.size() - 1; i >= 0; i--) {
+            todo.get(i).run();
         }
     }
 
@@ -100,13 +130,9 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         for (Suggestion suggestion : list) {
             average += suggestion.shouldFollow();
         }
+        if (average == 0f) return 0f;
         return average / list.size();
     }
-
-    public enum LogicalOperator {
-        AND, OR
-    }
-
 
 
     @Override
@@ -140,6 +166,7 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         return list.toArray();
     }
 
+    @SuppressWarnings({"SuspiciousToArrayCall", "NullableProblems"})
     @NotNull
     @Override
     public <T> T @NotNull [] toArray(T[] a) {
@@ -153,51 +180,61 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
 
     @Override
     public Suggestion set(int index, Suggestion element) {
+        chosenSuggestion = null;
         return list.set(index, element);
     }
 
     @Override
     public boolean add(Suggestion suggestion) {
+        chosenSuggestion = null;
         return list.add(suggestion);
     }
 
     @Override
     public void add(int index, Suggestion element) {
+        chosenSuggestion = null;
         list.add(index, element);
     }
 
     @Override
     public Suggestion remove(int index) {
+        chosenSuggestion = null;
         return list.remove(index);
     }
 
     @Override
     public boolean remove(Object o) {
+        chosenSuggestion = null;
         return list.remove(o);
     }
 
     @Override
     public void clear() {
+        chosenSuggestion = null;
         list.clear();
     }
 
     @Override
     public boolean addAll(@NotNull Collection<? extends Suggestion> c) {
+        chosenSuggestion = null;
         return list.addAll(c);
     }
 
     @Override
     public boolean addAll(int index, @NotNull Collection<? extends Suggestion> c) {
+        chosenSuggestion = null;
         return list.addAll(index, c);
     }
 
     @Override
     public boolean removeAll(@NotNull Collection<?> c) {
+        chosenSuggestion = null;
         return list.removeAll(c);
     }
 
     @Override
     public boolean retainAll(@NotNull Collection<?> c) {
+        chosenSuggestion = null;
         return list.retainAll(c);
     }
 

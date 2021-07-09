@@ -2,15 +2,12 @@ package fr.bananasmoothii.rulesgeneration.rules;
 
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunk;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
-import fr.bananasmoothii.rulesgeneration.chunks.WrongCubicChunkException;
 import fr.bananasmoothii.rulesgeneration.suggestions.SimpleSuggestion;
 import fr.bananasmoothii.rulesgeneration.suggestions.SuggestionList;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class RelativeRule extends Rule {
 
@@ -20,12 +17,12 @@ public class RelativeRule extends Rule {
     public final boolean shouldBePresent;
     public final CubicChunk[] what;
 
-    public RelativeRule(CubicChunk concerned, int relativeX, int relativeY, int relativeZ, CubicChunk... what) {
-        this(concerned, relativeX, relativeY, relativeZ, true, what);
+    public RelativeRule(int relativeX, int relativeY, int relativeZ, CubicChunk... what) {
+        this(relativeX, relativeY, relativeZ, true, what);
     }
 
-    public RelativeRule(CubicChunk concerned, int relativeX, int relativeY, int relativeZ, boolean shouldBePresent, CubicChunk... what) {
-        super(concerned);
+    public RelativeRule(int relativeX, int relativeY, int relativeZ, boolean shouldBePresent, CubicChunk... what) {
+        super();
         this.relativeX = relativeX;
         this.relativeY = relativeY;
         this.relativeZ = relativeZ;
@@ -56,12 +53,13 @@ public class RelativeRule extends Rule {
             }
         }
         suggestions.validate();
+        if (suggestions.isEmpty()) return null;
         return suggestions;
     }
 
     @Override
     public boolean test(CubicChunkEnvironment environment, int x, int y, int z) {
-        if (!concerned.equals(environment.get(x, y, z))) throw new WrongCubicChunkException(environment.get(x, y, z), what);
+        //if (!concerned.equals(environment.get(x, y, z))) throw new WrongCubicChunkException(environment.get(x, y, z), what);
 
         CubicChunk present = environment.get(x + relativeX, y + relativeY, z + relativeZ);
         for (CubicChunk what1 : what) {
@@ -69,12 +67,12 @@ public class RelativeRule extends Rule {
         }
         return !shouldBePresent;
     }
-
+/*
     @Override
     public boolean concerns(int xConcerned, int yConcerned, int zConcerned, int xApplied, int yApplied, int zApplied) {
         return xConcerned - xApplied == relativeX && yConcerned - yApplied == relativeY && zConcerned - zApplied == relativeZ;
     }
-
+*/
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
