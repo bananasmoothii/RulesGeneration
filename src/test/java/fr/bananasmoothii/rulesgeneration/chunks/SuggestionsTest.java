@@ -15,14 +15,23 @@ public class SuggestionsTest {
 
     static {
         environment = new CubicChunkEnvironment();
-        stone = new CubicChunk(CubicChunk.nextId(), 30f, false);
-        grass = new CubicChunk(CubicChunk.nextId(), 0f, false);
+        stone = new CubicChunk(1, 30f, false);
+        grass = new CubicChunk(2, 0f, false);
 
-        Rule needsToBeNearStone = new ProximityRule(1, stone);
-        stone.rules.add(needsToBeNearStone);
+        Rule min5StoneAround = new ProximityRule(1, 2, stone);
+        stone.rules.add(min5StoneAround);
 
         Rule aboveStone = new RelativeRule(0, -1, 0, stone);
         grass.rules.add(aboveStone);
+
+        Rule underAir = new RelativeRule(0, 1, 0, CubicChunk.AIR_CHUNK);
+        grass.rules.add(underAir);
+
+        Rule aboveGrass = new RelativeRule(0, -1, 0, grass);
+        CubicChunk.AIR_CHUNK.rules.add(aboveGrass);
+
+        Rule min5AirAround = new ProximityRule(1, 2, CubicChunk.AIR_CHUNK);
+        CubicChunk.AIR_CHUNK.rules.add(min5AirAround);
     }
 
     @Test
@@ -48,6 +57,8 @@ public class SuggestionsTest {
 
     @Test
     void generation() {
-
+        environment.generate(-3, -3, -3, 3, 3, 3);
+        environment.validateAll();
+        environment.debugPrint();
     }
 }

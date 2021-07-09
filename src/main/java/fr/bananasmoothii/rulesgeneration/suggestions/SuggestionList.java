@@ -10,7 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class SuggestionList extends Suggestion implements List<Suggestion> {
 
@@ -84,7 +83,7 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
                     if (change.cubicChunk == null) continue;
                     for (Rule rule : change.cubicChunk.rules) {
                         // if the suggestion isn't valid according to all rules, should it just remove that suggestion...
-                        if (list.size() > 1 && (Thread.currentThread().getStackTrace().length > 10 || environment.random.nextBoolean())) {
+                        if (list.size() > 1 && (Thread.currentThread().getStackTrace().length > 100 || environment.random.nextBoolean())) {
                             if (!rule.test(environment, change.x, change.y, change.z)) {
                                 todo.add(() -> list.remove(chosenSuggestion));
                             }

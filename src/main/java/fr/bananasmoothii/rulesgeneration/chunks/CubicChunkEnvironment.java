@@ -1,12 +1,13 @@
 package fr.bananasmoothii.rulesgeneration.chunks;
 
+import fr.bananasmoothii.rulesgeneration.suggestions.SuggestionList;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunkCoords> {
+public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
 
     public final Random random;
     private static final HashMap<Random, CubicChunkEnvironment> instances = new HashMap<>();
@@ -183,8 +184,8 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunkCoord
 
     @NotNull
     @Override
-    public Iterator<@Nullable CubicChunkCoords> iterator() {
-        return new Iterator<@Nullable CubicChunkCoords>() {
+    public Iterator<CubicChunkCoords> iterator() {
+        return new Iterator<CubicChunkCoords>() {
             private int currentX = xMin, currentY = yMin, currentZ = zMin;
 
             @Override
@@ -194,7 +195,7 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunkCoord
             }
 
             @Override
-            public @Nullable CubicChunkCoords next() {
+            public CubicChunkCoords next() {
                 if (++currentZ >= zMax) {
                     currentZ = zMin;
                     currentY++;
@@ -205,10 +206,66 @@ public class CubicChunkEnvironment implements Iterable<@Nullable CubicChunkCoord
                 }
                 if (currentX >= xMax) throw new NoSuchElementException();
                 CubicChunk c = get(currentX, currentY, currentZ);
-                if (c == null) return null;
                 return new CubicChunkCoords(c, currentX, currentY, currentZ);
             }
         };
+    }
+
+    public void generate(int xFrom, int yFrom, int zFrom, int xTo, int yTo, int zTo) {
+        if (xTo <= xFrom || yTo <= yFrom || zTo <= zFrom) throw new IllegalArgumentException("To coordinates must be greater than From coordinates");
+        int xMiddle = (xFrom + xTo) / 2, yMiddle = (yFrom + yTo) / 2, zMiddle = (zFrom + zTo) / 2;
+        regenerate(xMiddle, yMiddle, zMiddle);
+
+        int maxRadius = xTo - xFrom;
+        {
+            int tempR = yTo - yFrom;
+            if (tempR > maxRadius) maxRadius = tempR;
+            tempR = zTo - zFrom;
+            if (tempR > maxRadius) maxRadius = tempR;
+        } // we don't need tempR anymore
+        // divide by 2 and round up
+        if (maxRadius % 2 == 1) maxRadius++;
+        maxRadius >>= 1; // maxRadius = maxRadius/2
+
+        for (int currentRadius = 1; currentRadius <= maxRadius; currentRadius++) {
+            int xMinBound = xMiddle - currentRadius, // all inclusive
+                xMaxBound = xMiddle + currentRadius,
+                yMinBound = yMiddle - currentRadius,
+                yMaxBound = yMiddle + currentRadius,
+                zMinBound = zMiddle - currentRadius,
+                zMaxBound = zMiddle + currentRadius;
+            for (int x = xMinBound; x <= xMaxBound; x++) {
+                for (int y = yMinBound; y <= yMaxBound; y++) {
+                    if (x == xMinBound || x == xMaxBound || y == yMinBound || y == yMaxBound) {
+                        for (int z = zMinBound; z <= zMaxBound; z++) {
+                            generate(x, y, z);
+                        }
+                    } else {
+                        generate(x, y, zMinBound);
+                        generate(x, y, zMaxBound);
+                    }
+                }
+            }
+        }
+    }
+
+    public void regenerate(int x, int y, int z) {
+        CubicChunk[] allAvailable = CubicChunk.allAvailable().toArray(new CubicChunk[0]);
+        CubicChunk chunk = allAvailable[random.nextInt(allAvailable.length)];
+        set(chunk, x, y, z);
+        chunk.rules.apply(this, x, y, z);
+    }
+
+    public void generate(int x, int y, int z) {
+        if (get(x, y, z) == null) regenerate(x, y, z);
+    }
+
+    public void validateAll() {
+        for (CubicChunkCoords cubicChunkCoords : this) {
+            if (cubicChunkCoords.cubicChunk != null) {
+                cubicChunkCoords.cubicChunk.rules.apply(this, cubicChunkCoords.x, cubicChunkCoords.y, cubicChunkCoords.z);
+            }
+        }
     }
 
     public void debugPrint() {

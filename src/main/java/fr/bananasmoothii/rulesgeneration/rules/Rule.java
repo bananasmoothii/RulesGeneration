@@ -12,6 +12,11 @@ public abstract class Rule {
         return testAndSuggest(environment, x, y, z) != null;
     }
 
+    public void apply(CubicChunkEnvironment environment, int x, int y, int z) {
+        SuggestionList suggestions = testAndSuggest(environment, x, y, z);
+        if (suggestions != null) suggestions.apply();
+    }
+
     /*
      * This is an indicator telling if, applied at a position x, y, zApplied, the value of
      * {@link #test(CubicChunkEnvironment, int, int, int) test} could change if x, y, zConcerned are changed.
