@@ -1,5 +1,6 @@
 package fr.bananasmoothii.rulesgeneration;
 
+import fr.bananasmoothii.rulesgeneration.suggestions.SuggestionList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -7,16 +8,27 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class FloatRangeMap<V> implements Iterable<FloatRangeMap.FloatRangeNode<V>> {
+/**
+ * This is a special type of map or list, I don't really know, that uses ranges as index.
+ * For exemple, if I put element A from index 0 to 5 and element B from 4 to 10, then if I call
+ * {@link #get(float) get(2f)}, it will return element A. But if I call {@link #get(float) get(4.5f)}, it will return
+ * B because this is the element I set the last.
+ *
+ * This class is only used in {@link SuggestionList} for now. See {@link SuggestionList#choose()}
+ * @param <T> the type of all elements that you can {@link #get(float) get} or {@link #put(float, float, Object) put}.
+ * @see SuggestionList#choose()
+ */
+@SuppressWarnings("JavadocReference") // for the choose link above
+public class FloatRangeMap<T> implements Iterable<FloatRangeMap.FloatRangeNode<T>> {
 
-    final List<FloatRangeNode<V>> nodes = new ArrayList<>();
+    final List<FloatRangeNode<T>> nodes = new ArrayList<>();
 
-    public void put(float from, float to, V value) {
+    public void put(float from, float to, T value) {
         nodes.add(new FloatRangeNode<>(from, to, value));
     }
 
-    public @Nullable V get(float where) {
-        for (FloatRangeNode<V> node : this) {
+    public @Nullable T get(float where) {
+        for (FloatRangeNode<T> node : this) {
             if (node.contains(where)) return node.value;
         }
         return null;
@@ -24,8 +36,8 @@ public class FloatRangeMap<V> implements Iterable<FloatRangeMap.FloatRangeNode<V
 
     @NotNull
     @Override
-    public Iterator<FloatRangeNode<V>> iterator() {
-        return new Iterator<FloatRangeNode<V>>() {
+    public Iterator<FloatRangeNode<T>> iterator() {
+        return new Iterator<FloatRangeNode<T>>() {
             private int i = nodes.size();
 
             @Override
@@ -34,7 +46,7 @@ public class FloatRangeMap<V> implements Iterable<FloatRangeMap.FloatRangeNode<V
             }
 
             @Override
-            public FloatRangeNode<V> next() {
+            public FloatRangeNode<T> next() {
                 i--;
                 return nodes.get(i);
             }

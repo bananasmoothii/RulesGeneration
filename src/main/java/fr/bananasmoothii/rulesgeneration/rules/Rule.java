@@ -14,7 +14,10 @@ public abstract class Rule {
 
     public void apply(CubicChunkEnvironment environment, int x, int y, int z) {
         SuggestionList suggestions = testAndSuggest(environment, x, y, z);
-        if (suggestions != null) suggestions.apply();
+        if (suggestions != null) {
+            suggestions.validate();
+            suggestions.apply();
+        }
     }
 
     /*

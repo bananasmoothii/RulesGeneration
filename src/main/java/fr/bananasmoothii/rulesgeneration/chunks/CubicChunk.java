@@ -12,6 +12,10 @@ import org.jetbrains.annotations.Range;
 
 import java.util.*;
 
+/**
+ * A CubicChunk is the base bloc of generation. It is 16x16x16 minecraft blocs.
+ * The world (should) generate only with pre-built CubicChunk.
+ */
 public class CubicChunk implements Iterable<BlockData> {
 
     private final BlockData[][][] blockDatas;
@@ -34,24 +38,25 @@ public class CubicChunk implements Iterable<BlockData> {
         }
     }
 
+    /**
+     * New instance using {@link #nextId()}
+     */
     public CubicChunk() {
         this(nextId(), 0f, true);
     }
 
-    public CubicChunk(float rarity) {
+    /**
+     * @param rarity 0 = common (default), positive = very common, negative = rare. Please keep values in the range [-100; 100]
+     */
+    public CubicChunk(@Range(from = -100, to = 100) float rarity) {
         this(nextId(), rarity, true);
     }
 
+    /**
+     * @return The ID that the next instance will have
+     */
     public static int nextId() {
         return instances.lastKey() + 1;
-    }
-
-    public CubicChunk(int id) {
-        this(id, 0f, true);
-    }
-
-    public CubicChunk(int id, float rarity) {
-        this(id);
     }
 
     protected CubicChunk(int id, float rarity, boolean fillWithAir) {
@@ -65,6 +70,10 @@ public class CubicChunk implements Iterable<BlockData> {
             fill(Material.AIR);
     }
 
+    /**
+     * Fills all 4096 minecraft blocs (16x16x16) with {@link Bukkit#createBlockData(Material)}
+     * @param material the {@link Material} to fill with
+     */
     public void fill(Material material) {
         for (byte x = 0; x < 16; x++) {
             blockDatas[x] = new BlockData[16][16];
@@ -80,15 +89,25 @@ public class CubicChunk implements Iterable<BlockData> {
     }
 
     public @NotNull static CubicChunk getInstanceOrNew(int id) {
-        CubicChunk candidate = instances.get(id);
-        if (candidate != null) return candidate;
-        return new CubicChunk(id);
+        return getInstanceOrNew(id, 0f);
     }
 
+    public @NotNull static CubicChunk getInstanceOrNew(int id, float rarity) {
+        CubicChunk candidate = instances.get(id);
+        if (candidate != null) return candidate;
+        return new CubicChunk(id, rarity, true);
+    }
+
+    /**
+     * @return all instances of {@link CubicChunk}
+     */
     public static Collection<CubicChunk> allAvailable() {
         return Collections.unmodifiableCollection(instances.values());
     }
 
+    /**
+     * @throws IndexOutOfBoundsException if the coordinates are not valid
+     */
     public static void checkIndex(int x, int y, int z) {
         if (x < 0 || x > 15 || y < 0 || y > 15 || z < 0 || z > 15)
             throw new IndexOutOfBoundsException("indexes must be be between 0 and 15");
@@ -112,6 +131,9 @@ public class CubicChunk implements Iterable<BlockData> {
         return id;
     }
 
+    /**
+     * Iterates over all 4096 blocs
+     */
     @NotNull
     @Override
     public Iterator<@NotNull BlockData> iterator() {

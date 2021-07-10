@@ -3,6 +3,9 @@ package fr.bananasmoothii.rulesgeneration.rules;
 import fr.bananasmoothii.rulesgeneration.LogicalOperator;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunk;
 
+/**
+ * A rules that ensures there are min "minAmount" "what" in a radius of "radius"
+ */
 public class ProximityRule extends RuleList<RelativeRule> {
     public final int radius;
 

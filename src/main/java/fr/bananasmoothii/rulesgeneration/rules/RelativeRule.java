@@ -9,6 +9,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Objects;
 
+/**
+ * A rule that ensures "what" is present/absent at coordinates (that you give when testing) + relativeCoordinates (that
+ * you give in constructor)
+ */
 public class RelativeRule extends Rule {
 
     public final int relativeX;
@@ -52,15 +56,13 @@ public class RelativeRule extends Rule {
                 suggestions.add(new SimpleSuggestion(environment, x + relativeX, y + relativeY, z + relativeZ, usableChunk));
             }
         }
-        suggestions.validate();
+        //suggestions.validate();
         if (suggestions.isEmpty()) return null;
         return suggestions;
     }
 
     @Override
     public boolean test(CubicChunkEnvironment environment, int x, int y, int z) {
-        //if (!concerned.equals(environment.get(x, y, z))) throw new WrongCubicChunkException(environment.get(x, y, z), what);
-
         CubicChunk present = environment.get(x + relativeX, y + relativeY, z + relativeZ);
         for (CubicChunk what1 : what) {
             if (what1 == present) return shouldBePresent;

@@ -9,29 +9,48 @@ import org.jetbrains.annotations.Range;
 
 import java.util.*;
 
+/**
+ * list of rules, with a {@link LogicalOperator} to know how to proceed.
+ * @param <R> the class extending {@link Rule}, most of the time you will just need RuleList<{@linkplain Rule}>
+ * @see SuggestionList
+ */
 public class RuleList<R extends Rule> extends Rule implements List<R> {
 
     final List<R> list;
     public final LogicalOperator logicalOperator;
     public final @Range(from = 1, to = Integer.MAX_VALUE) int minAmount;
 
+    /**
+     * New instance with {@link LogicalOperator#AND}
+     * @see #RuleList(LogicalOperator) constructor with a logical operator
+     */
     public RuleList() {
-        this(LogicalOperator.AND, 1);
+        this(LogicalOperator.AND);
     }
 
+    /**
+     * @param minAmount the minimum amount of validated rules from the list to make {@link #test(CubicChunkEnvironment, int, int, int)}
+     *                  return {@code true} and {@link #testAndSuggest(CubicChunkEnvironment, int, int, int)} return
+     *                  {@code null}. This automatically sets the {@link LogicalOperator} to {@link LogicalOperator#OR OR}
+     *                  because {@link LogicalOperator#AND AND} requires every rule in the list to be valid.
+     * @see #RuleList(LogicalOperator) constructor with minAmount = 1 and where you can set a logical operator
+     */
     public RuleList(@Range(from = 1, to = Integer.MAX_VALUE) int minAmount) {
-        this(LogicalOperator.AND, minAmount);
-    }
-
-    public RuleList(LogicalOperator logicalOperator) {
-        this(logicalOperator, 1);
-    }
-
-    public RuleList(LogicalOperator logicalOperator, @Range(from = 1, to = Integer.MAX_VALUE) int minAmount) {
-        this.logicalOperator = logicalOperator;
+        this.logicalOperator = LogicalOperator.OR;
         //noinspection ConstantConditions
         if (minAmount <= 0) throw new IllegalArgumentException("min amount needs to be 1 or above");
         this.minAmount = minAmount;
+        list = new ArrayList<>();
+    }
+
+    /**
+     * Constructor where you can choose your {@link LogicalOperator}. {@code minAmount} is set to 1
+     * @param logicalOperator The logical operator used in tests
+     * @see #RuleList(int) constructor to set a minimum amount of validated rules
+     */
+    public RuleList(LogicalOperator logicalOperator) {
+        this.logicalOperator = logicalOperator;
+        this.minAmount = 1;
         list = new ArrayList<>();
     }
 
@@ -41,17 +60,21 @@ public class RuleList<R extends Rule> extends Rule implements List<R> {
         // shouldn't need to validate suggestions here as they are built based on the rules
         switch (logicalOperator) {
             case AND:
+                // test everything
                 for (R rule : list) {
                     SuggestionList newSuggestions = rule.testAndSuggest(environment, x, y, z);
                     if (newSuggestions != null) suggestions.addAll(newSuggestions);
                 }
                 return suggestions.isEmpty() ? null : suggestions;
             case OR:
+                // first test if everything is ok, continue with suggestions only after
                 RuleList<R> wrongRules = new RuleList<>(LogicalOperator.OR);
                 for (R rule : list) {
                     if (!rule.test(environment, x, y, z)) wrongRules.add(rule);
                 }
                 if (list.size() - wrongRules.size() >= minAmount) return null;
+                // there are wrong rules, we need to make suggestions.
+                // first, randomly pick some rules (we pick "minAmount" of them)
                 RuleList<R> rulesIWantToValidate = new RuleList<>(LogicalOperator.OR);
                 for (int i = 0; i < minAmount; i++) {
                     if (wrongRules.size() == 0) break;
@@ -59,6 +82,7 @@ public class RuleList<R extends Rule> extends Rule implements List<R> {
                     rulesIWantToValidate.add(wrongRules.get(pick));
                     wrongRules.remove(pick);
                 }
+                // then add every suggestions
                 for (R rule : rulesIWantToValidate) {
                     SuggestionList newSuggestions = rule.testAndSuggest(environment, x, y, z);
                     if (newSuggestions != null) suggestions.addAll(newSuggestions);

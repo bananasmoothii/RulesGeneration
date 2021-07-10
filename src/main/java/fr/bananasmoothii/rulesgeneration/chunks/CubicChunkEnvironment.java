@@ -1,22 +1,42 @@
 package fr.bananasmoothii.rulesgeneration.chunks;
 
-import fr.bananasmoothii.rulesgeneration.suggestions.SuggestionList;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Random;
 
+/**
+ * This is where all {@link CubicChunk} are generated. It acts like a 3-dimensional (x, y and z) auto-extending
+ * (you can set and get at any index without worrying about out of bounds exceptions (well there are currently still
+ * some out of bounds exceptions that I did not manage to fix)) negative-allowing (index can be negative) list.
+ */
 public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
 
+    /**
+     * There is a random bound to each instance as there is a random bound to each minecraft world (seed)
+     */
     public final Random random;
     private static final HashMap<Random, CubicChunkEnvironment> instances = new HashMap<>();
     private static int enlargeAtOnce = 10;
 
+    /** main data */
     private CubicChunk[][][] cubicChunks;
+
+    /*
+        The internal working is: when you set or get something at certains coordinates, the coordinates you give are
+        offset by x, y and zOffset. x, y and zMin/Max are to determine when the arrays needs to be copied in larger arrays.
+        It does not mean the array will be copied in a larger one, it just means it will call enlarge... methods. Then,
+        the enlarge... methods will maybe copy the array(s) in larger ones, or do nothing apart saying "hey, you don't
+        need to call me for this index", and this means raising ...Max fields or lowering ...Min fields.
+     */
     private int xOffset, yOffset, zOffset,
                 xMin, yMin, zMin, // inclusive
                 xMax, yMax, zMax, // inclusive too
+                // these are always equal to cubicChunks.length, cubicChunks[0].length and cubicChunks[0][0].length
                 xArraySize, yArraySize, zArraySize;
 
     public CubicChunkEnvironment() {
@@ -31,6 +51,10 @@ public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
         this(random, ySize, 50);
     }
 
+    /**
+     * @param ySize the height of this environment
+     * @param size the length en width of this environment
+     */
     public CubicChunkEnvironment(Random random, int ySize, int size) {
         instances.put(random, this);
         this.random = random;
@@ -71,6 +95,9 @@ public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
         set(chunkCoords.cubicChunk, chunkCoords.x, chunkCoords.y, chunkCoords.z);
     }
 
+    /**
+     * Ensures that an element can be set at the given coordinates
+     */
     public void ensureCapacityForElement(int x, int y, int z) {
         if (x < xMin) {
             enlargeX(x - xMin); // = -(xMin - x)
@@ -182,6 +209,10 @@ public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
         return enlargeAtOnce;
     }
 
+    /**
+     * Iterates over all {@link CubicChunk} but wrapped int {@link CubicChunkCoords} so you can have the coordinates
+     * along.
+     */
     @NotNull
     @Override
     public Iterator<CubicChunkCoords> iterator() {
@@ -260,6 +291,9 @@ public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
         if (get(x, y, z) == null) regenerate(x, y, z);
     }
 
+    /**
+     * re-applies all rules everywhere
+     */
     public void validateAll() {
         for (CubicChunkCoords cubicChunkCoords : this) {
             if (cubicChunkCoords.cubicChunk != null) {
@@ -268,6 +302,9 @@ public class CubicChunkEnvironment implements Iterable<CubicChunkCoords> {
         }
     }
 
+    /**
+     * prints the layer z=0 in console
+     */
     public void debugPrint() {
         System.out.println("xMin = " + xMin + " ;  xMax = " + xMax + " ;  yMin = " + yMin + " ;  yMax = " + yMax);
         for (int x = xMin + xOffset; x <= xMax + xOffset; x++) {

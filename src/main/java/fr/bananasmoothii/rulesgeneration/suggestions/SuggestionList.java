@@ -2,6 +2,7 @@ package fr.bananasmoothii.rulesgeneration.suggestions;
 
 import fr.bananasmoothii.rulesgeneration.FloatRangeMap;
 import fr.bananasmoothii.rulesgeneration.LogicalOperator;
+import fr.bananasmoothii.rulesgeneration.chunks.CubicChunk;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkCoords;
 import fr.bananasmoothii.rulesgeneration.chunks.CubicChunkEnvironment;
 import fr.bananasmoothii.rulesgeneration.rules.Rule;
@@ -11,6 +12,10 @@ import org.jetbrains.annotations.Range;
 
 import java.util.*;
 
+/**
+ * List of {@link Suggestion}
+ * @see fr.bananasmoothii.rulesgeneration.rules.RuleList
+ */
 public class SuggestionList extends Suggestion implements List<Suggestion> {
 
     final List<Suggestion> list;
@@ -60,6 +65,10 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
      * This is useful only when {@link #logicalOperator} is {@link LogicalOperator#OR OR}. It picks one suggestion based
      * on {@link Suggestion#shouldFollow()}. The result, {@link #chosenSuggestion}, will be {@code null} if
      * {@link #logicalOperator} is not {@link LogicalOperator#OR OR}.
+     *
+     * This uses a {@link FloatRangeMap} where all node size are the value of {@link Suggestion#shouldFollow()} + 100.
+     * So for exemple, If element A has a size of 3, B 8 and C 4, the map will look like {@code AAABBBBBBBBCCCC}. We can
+     * see here that if you pick a random element, there are more chances to get B.
      */
     void choose() {
         if (logicalOperator == LogicalOperator.OR) {
@@ -74,6 +83,10 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         }
     }
 
+    /**
+     * Be sure everything that will be changed if that suggestion is applied is valid according to the rules of each
+     * {@link CubicChunk} changed
+     */
     public void validate() {
         ArrayList<Runnable> todo = new ArrayList<>();
         switch (logicalOperator) {
@@ -91,7 +104,7 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
                         } else {
                             SuggestionList newSuggestions = rule.testAndSuggest(environment, change.x, change.y, change.z);
                             if (newSuggestions != null) {
-                                newSuggestions.validate();
+                                //newSuggestions.validate();
                                 todo.add(() -> list.addAll(newSuggestions));
                             }
                         }
@@ -110,7 +123,7 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
                     for (Rule rule : change.cubicChunk.rules) {
                         SuggestionList newSuggestions = rule.testAndSuggest(environment, change.x, change.y, change.z);
                         if (newSuggestions != null) {
-                            newSuggestions.validate();
+                            //newSuggestions.validate();
                             list.addAll(newSuggestions);
                         }
                     }
@@ -122,6 +135,9 @@ public class SuggestionList extends Suggestion implements List<Suggestion> {
         }
     }
 
+    /**
+     * @return the average of all elements {@link Suggestion#shouldFollow()} result.
+     */
     @Override
     public float shouldFollow() {
         if (list.isEmpty()) return 0f;

@@ -2,6 +2,9 @@ package fr.bananasmoothii.rulesgeneration.chunks;
 
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * A wrapped {@link CubicChunk} with coordinates
+ */
 public class CubicChunkCoords {
 
     public @Nullable CubicChunk cubicChunk;
